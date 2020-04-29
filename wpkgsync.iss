@@ -19,13 +19,10 @@
 ; use cwRsync version for base version number, change it here
 #define MyAppVersion "5.5.0.10"
 #define MyCompany "company"
+; ============================================================
 AppVersion={#MyAppVersion}
 OutputBaseFilename=wpkgsync_setup.{#MyCompany}.{#MyAppVersion}
-; ============================================================
 AppName=WpkgSync
-;#define IncludeFile AddBackslash(SourcePath) + "config." + AddBackslash(MyCompany)
-;#include AddBackslash(IncludeFile) + "include.iss" 
-;#define IncludeFile AddBackslash(SourcePath) + "config." + AddBackslash(MyCompany)
 #include AddBackslash(SourcePath) + "config." + AddBackslash(MyCompany) + "include.iss" 
 UninstallDisplayName=WpkgSync
 DefaultDirName={commonpf}\WpkgSync
