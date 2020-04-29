@@ -75,11 +75,6 @@ shift
 rem loop until we've consumed all the parameters passed
 if not '%1'=='' goto PARSE
 
-echo.
-echo this: %this_program%
-echo bwlimit: %bwlimit%
-echo   setup: %setup%
-
 rem rsync variables in linux format, colon defines a remote host, so:
 rem replace c: with /cygdrive/c and \ with /  Example: C:\WORK\* --> /cygdrive/c/work/*
 set wpkgidfile=/cygdrive/c/ProgramData/wpkgsync/.ssh/wpkgsyncuser.id
