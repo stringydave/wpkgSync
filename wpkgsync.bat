@@ -32,6 +32,7 @@ rem 21/10/18  dce  add required --times option to rsync
 rem 26/02/20  dce  use any relevant packages\exclude file, delete-excluded
 rem 11/03/20  dce  site specific variables in .ini file
 rem 29/04/20  dce  add /setup
+rem 07/05/20  dce  use the new way of getting last user and boot time
 
 rem Make environment variable changes local to this batch file
 SETLOCAL
@@ -151,6 +152,10 @@ set sync_get=%errorlevel%
 :RSYNC-SEND
 rem get last logged off user from eventlog, and append to the logfile
 if exist %SCRIPTS%\wpkguserdetails.vbs cscript //nologo %SCRIPTS%\wpkguserdetails.vbs >> "%wpkglogfile%"
+rem or do it this way
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI" /v LastLoggedOnUser >> "%wpkglogfile%"
+systeminfo|find "Time:" >> "%wpkglogfile%"
+
 rem set wpkglogfile for rsync, add /cygdrive/ and remove colons
 set wpkglogfile=/cygdrive/%wpkglogfile::=%
 rem replace \ with /
