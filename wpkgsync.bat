@@ -34,6 +34,8 @@ rem 11/03/20  dce  site specific variables in .ini file
 rem 29/04/20  dce  add /setup
 rem 07/05/20  dce  use the new way of getting last user and boot time
 rem 12/05/20  dce  grant users RX on the folder too
+rem 15/05/20  dce  use wmic for boot time as it's locale independent
+rem                LastLoggedOnUser gives just as good results as the script we were using
 
 rem Make environment variable changes local to this batch file
 SETLOCAL
@@ -63,7 +65,6 @@ if "%wpkgremote%"=="" (
 
 rem we're required to set HOME, but it seems to be ignored
 SET HOME=%ProgramData%\wpkgsync
-SET SCRIPTS=%ProgramData%\wpkg\scripts
 SET PACKAGES=%ProgramData%\wpkg\packages
 SET wpkglogfile=%systemdrive%\wpkg-%computername%.log
 
@@ -150,13 +151,13 @@ rem sync the remote structure to here, append the log to the wpkg log (wpkg crea
 rsync -rvh -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --progress --delete --delete-excluded --partial --times --timeout=120 %bwlimit% %exclude% --log-file=%wpkglogfile% %wpkgremote%:/opt/updates/ %wpkglocal%/ 2>nul
 set sync_get=%errorlevel%
 
-:RSYNC-SEND
-rem get last logged off user from eventlog, and append to the logfile
-if exist %SCRIPTS%\wpkguserdetails.vbs cscript //nologo %SCRIPTS%\wpkguserdetails.vbs >> "%wpkglogfile%"
-rem or do it this way
+:APPEND-LOG
+rem get last logged off user, and append to the logfile
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI" /v LastLoggedOnUser >> "%wpkglogfile%"
-systeminfo|find "Time:" >> "%wpkglogfile%"
+rem get LastBootUpTime from wmic, pipe through find to force to utf-8
+wmic path Win32_OperatingSystem get LastBootUpTime | find /v "" >> "%wpkglogfile%"
 
+:RSYNC-SEND
 rem set wpkglogfile for rsync, add /cygdrive/ and remove colons
 set wpkglogfile=/cygdrive/%wpkglogfile::=%
 rem replace \ with /

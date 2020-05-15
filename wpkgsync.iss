@@ -14,11 +14,12 @@
 ; 26/02/20  dce  .6 use any relevant packages\exclude file 
 ; 28/02/20  dce  .10 use /setup & separate option for full synch
 ; 07/05/20  dce  .11 use the new way of getting last user and boot time
+; 15/05/20  dce  .12 use LastBootUpTime now, remove no longer required script dependancy
 
 [Setup]
 ; ============================================================
 ; use cwRsync version for base version number, change it here
-#define MyAppVersion "5.5.0.11"
+#define MyAppVersion "5.5.0.12"
 #define MyCompany "company"
 ; ============================================================
 AppVersion={#MyAppVersion}
