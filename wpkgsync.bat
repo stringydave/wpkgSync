@@ -33,6 +33,7 @@ rem 26/02/20  dce  use any relevant packages\exclude file, delete-excluded
 rem 11/03/20  dce  site specific variables in .ini file
 rem 29/04/20  dce  add /setup
 rem 07/05/20  dce  use the new way of getting last user and boot time
+rem 12/05/20  dce  grant users RX on the folder too
 
 rem Make environment variable changes local to this batch file
 SETLOCAL
@@ -175,7 +176,7 @@ set takeown=%errorlevel%
 echo setting file permissions...
 echo setting file permissions... >> "%temp%\%scriptname%_acl.log"
 rem /T change Tree (recurse) /Grant, output to log file, apart from error text to CON which we can't capture
-icacls %ProgramData%\wpkg /T /grant "Administrators":F "SYSTEM":F >> "%temp%\%scriptname%_acl.log" 2>&1
+icacls %ProgramData%\wpkg /T /grant:r "Administrators":F "SYSTEM":F "USERS":RX >> "%temp%\%scriptname%_acl.log" 2>&1
 set icacls=%errorlevel%
 
 rem if there was an error
