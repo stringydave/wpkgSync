@@ -15,11 +15,12 @@
 ; 28/02/20  dce  .10 use /setup & separate option for full synch
 ; 07/05/20  dce  .11 use the new way of getting last user and boot time
 ; 15/05/20  dce  .12 use LastBootUpTime now, remove no longer required script dependancy
+; 03/07/20  dce  .15 autogenerate exclude file, abort if not admin
 
 [Setup]
 ; ============================================================
 ; use cwRsync version for base version number, change it here
-#define MyAppVersion "5.5.0.12"
+#define MyAppVersion "5.5.0.15"
 #define MyCompany "company"
 ; ============================================================
 AppVersion={#MyAppVersion}
