@@ -35,7 +35,7 @@ c:\ProgramData\wpkgsync\.ssh\
 
 TODO: describe how to create known_hosts file
 
-# Build (optional)
+# build (optional):
 to build with Inno Setup:
 
 make a folder structure like:
