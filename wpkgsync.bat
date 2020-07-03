@@ -5,14 +5,11 @@ rem put public part on server, and private part at %wpkgidfile%
 rem schedule this file to run
 rem file needs to run as Admin equivalent, or wpkguserdetails and rsync logging to logfile won't work
 
-rem TODO ##################################################
-rem abort if not running as Admin
-rem #######################################################
-
 rem returned codes:
 rem   101 missing ini file
 rem   102 could not read from ini file
 rem   103 FIX_ACLS failed
+rem   104 not running as Admin
 rem other setup rsync failed
 
 rem call:
@@ -36,6 +33,15 @@ rem 07/05/20  dce  use the new way of getting last user and boot time
 rem 12/05/20  dce  grant users RX on the folder too
 rem 15/05/20  dce  use wmic for boot time as it's locale independent
 rem                LastLoggedOnUser gives just as good results as the script we were using
+rem 02/07/20  dce  autogenerate exclude file
+rem 03/07/20  dce  abort if not running as Admin, tidy up variables
+
+rem abort if not running as Admin
+net file >nul 2>&1
+if errorlevel 1 (
+	echo this script must run as Admin
+	exit /b 104
+)
 
 rem Make environment variable changes local to this batch file
 SETLOCAL
@@ -65,7 +71,7 @@ if "%wpkgremote%"=="" (
 
 rem we're required to set HOME, but it seems to be ignored
 SET HOME=%ProgramData%\wpkgsync
-SET PACKAGES=%ProgramData%\wpkg\packages
+SET wpkgFolder=%ProgramData%\wpkg
 SET wpkglogfile=%systemdrive%\wpkg-%computername%.log
 
 rem now parse any parameters
@@ -141,12 +147,18 @@ rem try to get any exclude file, sync this folder first regardless of whether it
 rsync -rvh -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --progress --times --timeout=120 %bwlimit% --log-file=%wpkglogfile% %wpkgremote%:/opt/updates/packages/exclude %wpkglocal%/packages/ 2>nul
 rem if that failed for any reason, just move on
 
+:MAKE-EXCLUDE-FILE
+if exist "%temp%\%scriptname%.excl.txt" del "%temp%\%scriptname%.excl.txt"
+if not exist %wpkgFolder%\Tools\awk.exe               goto RSYNC-GET
+if not exist %wpkgFolder%\scripts\wpkgsyncexclude.awk goto RSYNC-GET
+%wpkgFolder%\Tools\awk.exe -f %wpkgFolder%\scripts\wpkgsyncexclude.awk %wpkgFolder%\packages\*.xml %wpkglogfile% > "%temp%\%scriptname%.excl.txt"
+
 :RSYNC-GET
 rem if there's a specific exclude file for a machine then use it, exclude-from works with DOS syntax too
 set exclude=--exclude='profiles.sites' --exclude='client/'
-if exist %packages%\exclude\pack_excl.default.txt set exclude=--exclude-from=%packages%\exclude\pack_excl.default.txt
-if exist %packages%\exclude\pack_excl.%computername%.txt set exclude=--exclude-from=%packages%\exclude\pack_excl.%computername%.txt
-
+if exist %wpkgFolder%\packages\exclude\pack_excl.default.txt        set exclude=--exclude-from=%wpkgFolder%\packages\exclude\pack_excl.default.txt
+if exist %wpkgFolder%\packages\exclude\pack_excl.%computername%.txt set exclude=--exclude-from=%wpkgFolder%\packages\exclude\pack_excl.%computername%.txt
+if exist "%temp%\%scriptname%.excl.txt"                             set exclude=--exclude-from=%temp%\%scriptname%.excl.txt
 rem sync the remote structure to here, append the log to the wpkg log (wpkg creates a new one each time):
 rsync -rvh -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --progress --delete --delete-excluded --partial --times --timeout=120 %bwlimit% %exclude% --log-file=%wpkglogfile% %wpkgremote%:/opt/updates/ %wpkglocal%/ 2>nul
 set sync_get=%errorlevel%
