@@ -1,5 +1,5 @@
 # wpkgSync
- sync a remote copy of the wpkg structure to the local machine
+sync a remote copy of the wpkg structure to the local machine
 
 - we have created a repository on a public facing server with all our WPKG setup in it.
 - client computers will connect to this server using (only) a ssh key which we distribute with the installer
@@ -40,18 +40,18 @@ to build with Inno Setup:
 
 make a folder structure like:
 ```
-C:\<WPKGsyncBuildfolder>
+<WPKGsyncBuildfolder>
 ├───client
 ├───config.company
 │   └───.ssh
 └───cwRsync
 ```
 - obtain cwrsync from https://www.itefix.net/content/cwrsync-free-edition
-- copy the contents to C:\WPKGSYNC\cwRsync\
+- copy the contents to <WPKGsyncBuildfolder>\cwRsync\
 - obtain wpkg, set up linux (?) server as above
-- copy the contents of <wpkg-folder>\client to C:\<WPKGsyncBuildfolder>\client\
-- copy wpkg_local_settings.xml to C:\<WPKGsyncBuildfolder>\client\
-- copy the other files in this repository to c:\<WPKGsyncBuildfolder>\
+- copy the contents of <wpkg-folder>\client to <WPKGsyncBuildfolder>\client\
+- copy wpkg_local_settings.xml to <WPKGsyncBuildfolder>\client\
+- copy the other files in this repository to <WPKGsyncBuildfolder>\
 - run Inno Setup on the file: wpkgsync.iss
 - adjust the build number as required and compile (Ctrl+F9) the executable.
 - deploy the executable to run on the target computers somehow (using wpkg obviously)
