@@ -33,12 +33,9 @@ c:\ProgramData\wpkgsync\.ssh\
 - create user id file using ssh-keygen, either the one on your server, or the one from the cwrsync package
 - put public part on server in the user .ssh folder, and private part at c:\ProgramData\wpkgsync\.ssh\wpkgsyncuser.id
 
-TODO ##################################################
-* describe how to create known_hosts file
+TODO: describe how to create known_hosts file
 
-wpkgsync.bat file needs to run as Admin equivalent, or rsync logging to logfile won't work
-
-# Build (optional) ######################################
+# Build (optional)
 to build with Inno Setup:
 
 make a folder structure like:
@@ -57,7 +54,7 @@ C:\<WPKGsyncBuildfolder>
 - copy the other files in this repository to c:\<WPKGsyncBuildfolder>\
 - run Inno Setup on the file: wpkgsync.iss
 - adjust the build number as required and compile (Ctrl+F9) the executable.
-- deploy the executable to run on the target computers somehow.
+- deploy the executable to run on the target computers somehow (using wpkg obviously)
 
 # returned codes:
 ``` 
