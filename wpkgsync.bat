@@ -35,6 +35,7 @@ rem 15/05/20  dce  use wmic for boot time as it's locale independent
 rem                LastLoggedOnUser gives just as good results as the script we were using
 rem 02/07/20  dce  autogenerate exclude file
 rem 03/07/20  dce  abort if not running as Admin, tidy up variables
+rem 09/11/20  dce  get systeminfo and serial number
 
 rem abort if not running as Admin
 net file >nul 2>&1
@@ -168,6 +169,10 @@ rem get last logged off user, and append to the logfile
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI" /v LastLoggedOnUser >> "%wpkglogfile%"
 rem get LastBootUpTime from wmic, pipe through find to force to utf-8
 wmic path Win32_OperatingSystem get LastBootUpTime | find /v "" >> "%wpkglogfile%"
+rem get systeminfo, lots of useful stuff
+systeminfo >> "%wpkglogfile%"
+rem and the machine serial number
+PowerShell.exe -ExecutionPolicy Bypass "get-ciminstance win32_bios | format-list SerialNumber" >> "%wpkglogfile%"
 
 :RSYNC-SEND
 rem set wpkglogfile for rsync, add /cygdrive/ and remove colons
