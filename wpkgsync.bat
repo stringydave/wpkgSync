@@ -163,7 +163,7 @@ set sync_get=%errorlevel%
 :APPEND-LOG
 rem if our logfile script has made an extra file, append that to the log
 if exist "%temp%\wpkgExtras.tmp" type "%temp%\wpkgExtras.tmp" >> "%wpkglogfile%"
-if exist "%windir%\temp\wpkgExtras.tmp" type "%temp%\wpkgExtras.tmp" >> "%wpkglogfile%"
+if exist "%windir%\temp\wpkgExtras.tmp" type "%windir%\temp\wpkgExtras.tmp" >> "%wpkglogfile%"
 
 :RSYNC-SEND
 rem set wpkglogfile for rsync, add /cygdrive/ and remove colons

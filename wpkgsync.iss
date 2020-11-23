@@ -17,11 +17,12 @@
 ; 15/05/20  dce  .12 use LastBootUpTime now, remove no longer required script dependancy
 ; 03/07/20  dce  .15 autogenerate exclude file, abort if not admin
 ; 09/11/20  dce  .16 get systeminfo and serial number
+; 23/11/20  dce  .20 use "logfile" for systeminfo and serial number
 
 [Setup]
 ; ============================================================
 ; use cwRsync version for base version number, change it here
-#define MyAppVersion "5.5.0.16"
+#define MyAppVersion "5.5.0.20"
 #define MyCompany "company"
 ; ============================================================
 AppVersion={#MyAppVersion}
