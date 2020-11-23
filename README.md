@@ -45,18 +45,18 @@ to build with [Inno Setup](https://jrsoftware.org/isinfo.php):
 
 make a folder structure like:
 ```
-<WPKGsyncBuildfolder>
+\{WPKGsyncBuildfolder\}
 ├───client
 ├───config.company
 │   └───.ssh
 └───cwRsync
 ```
 - obtain cwRsync from https://www.itefix.net/content/cwRsync-free-edition
-- copy the contents to <WPKGsyncBuildfolder>\cwRsync\
+- copy the contents to \{WPKGsyncBuildfolder\}\cwRsync\
 - obtain wpkg, set up linux (?) server as above
-- copy the contents of <wpkg-folder>\client to <WPKGsyncBuildfolder>\client\
-- copy wpkg_local_settings.xml to <WPKGsyncBuildfolder>\client\
-- copy the other files in _this_ repository to <WPKGsyncBuildfolder>\
+- copy the contents of \{wpkg-folder\}\client to \{WPKGsyncBuildfolder\}\client\
+- copy wpkg_local_settings.xml to \{WPKGsyncBuildfolder\}\client\
+- copy the other files in _this_ repository to \{WPKGsyncBuildfolder\}\
 - run Inno Setup on the file: wpkgsync.iss
 - adjust the build number as required and compile (Ctrl+F9) the executable.
 - deploy the executable to run on the target computers somehow (using wpkg obviously)
