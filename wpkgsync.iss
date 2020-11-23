@@ -18,11 +18,14 @@
 ; 03/07/20  dce  .15 autogenerate exclude file, abort if not admin
 ; 09/11/20  dce  .16 get systeminfo and serial number
 ; 23/11/20  dce  .20 use "logfile" for systeminfo and serial number
+; 23/11/20  dce  6.2.0.20 use 64 bit CWrsync 6.2.0
 
 [Setup]
 ; ============================================================
-; use cwRsync version for base version number, change it here
-#define MyAppVersion "5.5.0.20"
+; use cwRsync version for base version number, change it here, uncomment ArchitecturesAllowed for x64
+ArchitecturesAllowed=x64              
+#define MyAppVersion "6.2.0.20"       
+; #define MyAppVersion "5.5.0.20"    
 #define MyCompany "company"
 ; ============================================================
 AppVersion={#MyAppVersion}
@@ -45,6 +48,10 @@ ExtraDiskSpaceRequired=2147483648
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[InstallDelete]
+; delete files before the installer runs, we want to remove the .x86 .dll files
+Type: files; Name: "{app}\*.dll";
 
 [Files]
 Source: "C:\progs\wpkgsync\wpkgsync.bat";                             DestDir: "{app}";                                                    Flags: ignoreversion

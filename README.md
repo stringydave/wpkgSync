@@ -4,7 +4,7 @@ sync a remote copy of the wpkg structure to the local machine
 - we have created a repository on a public facing server with all our WPKG setup in it.
 - client computers will connect to this server using (only) a ssh key which we distribute with the installer
 - the server is of course locked down so this user can only read the files, but can write the logfile
-- in our environment we call this script ~after~ wpkg has run, it then uses (cw)rsync to update the local copy of the repository at `c:\programdata\wpkg\`
+- in our environment we call this script _after_ wpkg has run, it then uses (cw)rsync to update the local copy of the repository at `c:\programdata\wpkg\`
 - the next time wpkg runs, the cycle is repeated
 
 wpkgsync.bat file needs to run as Admin equivalent, or rsync logging to logfile, and fixing up the permissions of the local package store won't work
@@ -25,7 +25,7 @@ c:\ProgramData\wpkgsync\.ssh\
 └───wpkgsyncuser.id
 ```
 
-- obtain cwrsync from https://www.itefix.net/content/cwrsync-free-edition
+- obtain cwrsync from https://www.itefix.net/content/cwrsync-free-edition (there's now a x64 update)
 - copy the contents to "c:\Program Files (x86)\WpkgSync\"
 - on the server create a user for this process to use.
 - grant the user read access on the wpkg folder
@@ -51,7 +51,7 @@ make a folder structure like:
 - obtain wpkg, set up linux (?) server as above
 - copy the contents of <wpkg-folder>\client to <WPKGsyncBuildfolder>\client\
 - copy wpkg_local_settings.xml to <WPKGsyncBuildfolder>\client\
-- copy the other files in this repository to <WPKGsyncBuildfolder>\
+- copy the other files in _this_ repository to <WPKGsyncBuildfolder>\
 - run Inno Setup on the file: wpkgsync.iss
 - adjust the build number as required and compile (Ctrl+F9) the executable.
 - deploy the executable to run on the target computers somehow (using wpkg obviously)
