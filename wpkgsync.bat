@@ -36,6 +36,7 @@ rem                LastLoggedOnUser gives just as good results as the script we 
 rem 02/07/20  dce  autogenerate exclude file
 rem 03/07/20  dce  abort if not running as Admin, tidy up variables
 rem 09/11/20  dce  get systeminfo and serial number
+rem 23/11/20  dce  we'll get wpkg to run "logfile" now, so we just need to deal with the output
 
 rem abort if not running as Admin
 net file >nul 2>&1
@@ -133,20 +134,17 @@ rem can't talk to the remote server will result in code 12
 rem can't find the file/folder you're after will result in code 23
 
 :SETUP
-if '%setup%'=='' goto RSYNC-GET-EXCLUDE
+if '%setup%'=='' goto MAKE-EXCLUDE-FILE
 rem just the top level, no packages as yet, no logging, because we'll be running this whilst wpkg is active
+rem if it failed then abort, so that automated install will abort
 set exclude=--exclude='profiles.sites' --exclude='packages/'
 rsync -r -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --partial --times --timeout=120 %bwlimit% %exclude% %wpkgremote%:/opt/updates/ %wpkglocal%/ >nul 2>&1
-set sync_setup=%errorlevel%
-rem if it failed, then abort, so that automated install will abort
-if not %sync_setup%==0 exit /b %sync_setup%
+if errorlevel 1 exit /b %errorlevel%
+rem and the package.xml files, so we can process excludes later
+rsync -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --partial --times --timeout=120 %bwlimit% %wpkgremote%:/opt/updates/packages/*.xml %wpkglocal%/packages/ >nul 2>&1
+if errorlevel 1 exit /b %errorlevel%
 rem and skip all the next bits
 goto FIX_ACLS
-
-:RSYNC-GET-EXCLUDE
-rem try to get any exclude file, sync this folder first regardless of whether it exists on the remote server
-rsync -rvh -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --progress --times --timeout=120 %bwlimit% --log-file=%wpkglogfile% %wpkgremote%:/opt/updates/packages/exclude %wpkglocal%/packages/ 2>nul
-rem if that failed for any reason, just move on
 
 :MAKE-EXCLUDE-FILE
 if exist "%temp%\%scriptname%.excl.txt" del "%temp%\%scriptname%.excl.txt"
@@ -155,24 +153,17 @@ if not exist %wpkgFolder%\scripts\wpkgsyncexclude.awk goto RSYNC-GET
 %wpkgFolder%\Tools\awk.exe -f %wpkgFolder%\scripts\wpkgsyncexclude.awk %wpkgFolder%\packages\*.xml %wpkglogfile% > "%temp%\%scriptname%.excl.txt"
 
 :RSYNC-GET
-rem if there's a specific exclude file for a machine then use it, exclude-from works with DOS syntax too
+rem if previous step has made an exclude file then use it, exclude-from works with DOS syntax too
 set exclude=--exclude='profiles.sites' --exclude='client/'
-if exist %wpkgFolder%\packages\exclude\pack_excl.default.txt        set exclude=--exclude-from=%wpkgFolder%\packages\exclude\pack_excl.default.txt
-if exist %wpkgFolder%\packages\exclude\pack_excl.%computername%.txt set exclude=--exclude-from=%wpkgFolder%\packages\exclude\pack_excl.%computername%.txt
 if exist "%temp%\%scriptname%.excl.txt"                             set exclude=--exclude-from=%temp%\%scriptname%.excl.txt
 rem sync the remote structure to here, append the log to the wpkg log (wpkg creates a new one each time):
 rsync -rvh -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --progress --delete --delete-excluded --partial --times --timeout=120 %bwlimit% %exclude% --log-file=%wpkglogfile% %wpkgremote%:/opt/updates/ %wpkglocal%/ 2>nul
 set sync_get=%errorlevel%
 
 :APPEND-LOG
-rem get last logged off user, and append to the logfile
-reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI" /v LastLoggedOnUser >> "%wpkglogfile%"
-rem get LastBootUpTime from wmic, pipe through find to force to utf-8
-wmic path Win32_OperatingSystem get LastBootUpTime | find /v "" >> "%wpkglogfile%"
-rem get systeminfo, lots of useful stuff
-systeminfo >> "%wpkglogfile%"
-rem and the machine serial number
-PowerShell.exe -ExecutionPolicy Bypass "get-ciminstance win32_bios | format-list SerialNumber" >> "%wpkglogfile%"
+rem if our logfile script has made an extra file, append that to the log
+if exist "%temp%\wpkgExtras.tmp" type "%temp%\wpkgExtras.tmp" >> "%wpkglogfile%"
+if exist "%windir%\temp\wpkgExtras.tmp" type "%temp%\wpkgExtras.tmp" >> "%wpkglogfile%"
 
 :RSYNC-SEND
 rem set wpkglogfile for rsync, add /cygdrive/ and remove colons

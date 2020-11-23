@@ -25,7 +25,7 @@
 #define MyCompany "company"
 ; ============================================================
 AppVersion={#MyAppVersion}
-OutputBaseFilename=wpkgsync_setup.{#MyCompany}.{#MyAppVersion}
+OutputBaseFilename=wpkgsync_setup.{#MyAppVersion}.{#MyCompany}
 AppName=WpkgSync
 #include AddBackslash(SourcePath) + "config." + AddBackslash(MyCompany) + "include.iss" 
 UninstallDisplayName=WpkgSync
