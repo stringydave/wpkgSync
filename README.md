@@ -45,7 +45,7 @@ to build with [Inno Setup](https://jrsoftware.org/isinfo.php):
 
 make a folder structure like:
 ```
-\{WPKGsyncBuildfolder\}
+{WPKGsyncBuildfolder}
 ├───client
 ├───config.company
 │   └───.ssh
