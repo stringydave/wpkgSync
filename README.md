@@ -14,7 +14,7 @@ We created wpkgSync to allow us to sync a copy of the remote wpkg structure to t
 
 wpkgsync.bat file needs to run as Admin equivalent, so that rsync logging to logfile, and fixing up the permissions of the local package store will work, this is not a problem if we include it as a WPKG "post action".
 
-# usage
+# usage:
 to use this, on the end user computers make folders like:
 
 ```
@@ -75,7 +75,8 @@ other: setup rsync failed
 /fast - don't speed limit (default 2,000Kbps)
 /setup  just do the minimum - top level
 ```
-# server structure
+# server structure:
+the code assumes the following structure:
 ```
 /opt
 ├───updates
