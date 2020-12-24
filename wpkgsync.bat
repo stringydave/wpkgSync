@@ -10,6 +10,8 @@ rem   101 missing ini file
 rem   102 could not read from ini file
 rem   103 FIX_ACLS failed
 rem   104 not running as Admin
+rem   200+rsync get failed
+rem   300+rsync send failed
 rem other setup rsync failed
 
 rem call:
@@ -49,8 +51,8 @@ rem Make environment variable changes local to this batch file
 SETLOCAL
 
 rem Specify where to find rsync and related files, and add to PATH
-SET CWRSYNCHOME=%~dp0
-SET PATH=%CWRSYNCHOME%;%PATH%
+set CWRSYNCHOME=%~dp0
+set PATH=%CWRSYNCHOME%;%PATH%
 rem save these because %~0 will be destroyed by shift
 set scriptname=%~n0
 set scriptpath=%~dpn0
@@ -72,13 +74,13 @@ if "%wpkgremote%"=="" (
 )
 
 rem we're required to set HOME, but it seems to be ignored
-SET HOME=%ProgramData%\wpkgsync
-SET wpkgFolder=%ProgramData%\wpkg
-SET wpkglogfile=%systemdrive%\wpkg-%computername%.log
+set HOME=%ProgramData%\wpkgsync
+set wpkgFolder=%ProgramData%\wpkg
+set wpkglogfile=%systemdrive%\wpkg-%computername%.log
 
 rem now parse any parameters
-SET bwlimit=--bwlimit=2000
-SET setup=
+set bwlimit=--bwlimit=2000
+set setup=
 :PARSE
 if /i '%1'=='/fast'   set bwlimit=
 if /i '%1'=='/setup'  set setup=True
@@ -158,7 +160,7 @@ set exclude=--exclude='profiles.sites' --exclude='client/'
 if exist "%temp%\%scriptname%.excl.txt"                             set exclude=--exclude-from=%temp%\%scriptname%.excl.txt
 rem sync the remote structure to here, append the log to the wpkg log (wpkg creates a new one each time):
 rsync -rvh -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --progress --delete --delete-excluded --partial --times --timeout=120 %bwlimit% %exclude% --log-file=%wpkglogfile% %wpkgremote%:/opt/updates/ %wpkglocal%/ 2>nul
-set sync_get=%errorlevel%
+if errorlevel 1 set /a sync_get=200+%errorlevel%
 
 :APPEND-LOG
 rem if our logfile script has made an extra file, append that to the log
@@ -173,7 +175,7 @@ set wpkglogfile=%wpkglogfile:\=/%
 rem should end up with e.g. wpkglogfile=/cygdrive/c/wpkg-%computername%.log
 rem and send the wpkglogfile
 rsync -vh  -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --timeout=120 %bwlimit% --log-file=%wpkglogfile% %wpkglogfile% %wpkgremote%:/opt/wpkgreports/ 2>nul
-set sync_send=%errorlevel%
+if errorlevel 1 set /a sync_send=300+%errorlevel%
 
 :FIX_ACLS
 echo setting file ownership...
@@ -189,6 +191,8 @@ icacls %ProgramData%\wpkg /T /grant:r "Administrators":F "SYSTEM":F "USERS":RX >
 set icacls=%errorlevel%
 
 rem if there was an error
+if not     '%sync_get%'==''    exit /b %sync_get%
+if not    '%sync_send%'==''    exit /b %sync_send%
 if '%takeown%.%icacls%'=='0.0' goto END
 rem append acl log to the end of the logfile (might not work in setup mode)
 type "%temp%\%scriptname%.acl.log" >> %wpkglogfile%
