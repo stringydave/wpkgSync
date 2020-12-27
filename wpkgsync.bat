@@ -39,6 +39,7 @@ rem 02/07/20  dce  autogenerate exclude file
 rem 03/07/20  dce  abort if not running as Admin, tidy up variables
 rem 09/11/20  dce  get systeminfo and serial number
 rem 23/11/20  dce  we'll get wpkg to run "logfile" now, so we just need to deal with the output
+rem 27/12/20  dce  fail statuses for rsync get and rsync send, append wpkgExtras.tmp to log once only
 
 rem abort if not running as Admin
 net file >nul 2>&1
@@ -163,9 +164,11 @@ rsync -rvh -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --progres
 if errorlevel 1 set /a sync_get=200+%errorlevel%
 
 :APPEND-LOG
-rem if our logfile script has made an extra file, append that to the log
+rem if our logfile script has made an extra file, append that to the log, remove it so it only happens once
 if exist "%temp%\wpkgExtras.tmp" type "%temp%\wpkgExtras.tmp" >> "%wpkglogfile%"
+if exist "%temp%\wpkgExtras.tmp" del  "%temp%\wpkgExtras.tmp"
 if exist "%windir%\temp\wpkgExtras.tmp" type "%windir%\temp\wpkgExtras.tmp" >> "%wpkglogfile%"
+if exist "%windir%\temp\wpkgExtras.tmp" del "%windir%\temp\wpkgExtras.tmp"
 
 :RSYNC-SEND
 rem set wpkglogfile for rsync, add /cygdrive/ and remove colons
