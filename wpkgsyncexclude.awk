@@ -8,6 +8,8 @@
 # awk -f wpkgsyncexclude.awk %wpkgFolder%\packages\*.xml %wpkglogfile% > "%temp%\%scriptname%.excl.txt"
 
 # 03/07/20  dce  also don't exclude folders of packages in process of being removed
+# 22/04/21  dce  add referenced packages properly
+# 01/12/21  dce  tidy output
 
 BEGIN {
 	IGNORECASE = 1
@@ -31,20 +33,6 @@ BEGIN {
 	gsub(/ /,"",package_id)
 }
 
-# and do the same for any chained packages
-# <depends package-id="chassistype"/>
-# <chain package-id="libreofficehelppackengb" />
-/depends[[:space:]]+package-id/ || /chain[[:space:]]+package-id/ {
-	id = $0
-	# print
-    gsub(/^.*=/,"",id)	# remove everything up to the "="
-	gsub(/\"/,"",id)  	# "
-	gsub(/'/,"",id)		# '
-	gsub(/ /,"",id)		# space
-	gsub(/\/>/,"",id)	
-	referenced[package_id] = id
-}
-
 # this code gets invoked when we're installing stuff, and tells us where it is
 # <install cmd='msiexec /qn /norestart /i %SOFTWARE%\putty\putty-%version%-installer.msi' />
 # we assume that at run time %SOFTWARE% points to "packages/"
@@ -52,8 +40,7 @@ BEGIN {
 	package_folder = $0
 	gsub(/.*%software%\\/,"",package_folder)
 	gsub(/\\.*$/,"",package_folder)
-	
-	folder_for[package_id] = "packages/" package_folder "/"
+	folder_path[package_id] = "packages/" package_folder "/"
 }
 
 # now read wpkg log to see what package_ids apply to this machine
@@ -61,16 +48,31 @@ BEGIN {
 /Adding package with ID/ {
 	# package_id is the bit in ''
 	split ($0, stringparts, "'")
-	package_id     = stringparts[2]
+	package_id = stringparts[2]
 
-	if (package_id in folder_for) {
-		printf("# %-20s : %s\n", package_id, folder_for[package_id])
+	if (package_id in folder_path) {
+		printf("# %-25s  : %s\n", package_id, folder_path[package_id])
 		# and delete that element from the array
-		delete folder_for[package_id]
-		# if there are any referenced packages
-		delete folder_for[referenced[package_id]]
+		delete folder_path[package_id]
 	} else {
-		printf("# %-20s\n", package_id)
+		printf("# %-25s\n", package_id)
+	}
+}
+
+# and referenced packages
+# 2021-04-22 08:06:11, DEBUG   : Adding referenced package 'ChassisType' (chassistype) for package 'WPKG Settings' (wpkg-settings)
+/Adding referenced package/ {
+	# package_id is the first bit in ()
+	split ($0, stringparts, "(")
+	package_id     = stringparts[2]
+    sub(/).*$/,"",package_id)	# remove everything after the ")"
+
+	if (package_id in folder_path) {
+		printf("# %-25s r: %s\n", package_id, folder_path[package_id])
+		# and delete that element from the array
+		delete folder_path[package_id]
+	} else {
+		printf("# %-25s r:\n", package_id)
 	}
 }
 
@@ -82,20 +84,27 @@ BEGIN {
     gsub(/^.*\(/,"",package_id)	# remove everything up to the "("
 	gsub(/\).*$/,"",package_id) # remove anything after "")"
 
-	if (package_id in folder_for) {
-		printf("# %-20s - %s [remove]\n", package_id, folder_for[package_id])
+	if (package_id in folder_path) {
+		printf("# %-25s - %s [remove]\n", package_id, folder_path[package_id])
 		# and delete that element from the array
-		delete folder_for[package_id]
+		delete folder_path[package_id]
 	} else {
-		printf("# %-20s\n", package_id)
+		printf("# %-25s f\n", package_id)
 	}
 }
 
 END {
+	# we don't care about duplicates
 	print "# ====================================================="
-	print "# package folders to exclude:"
-	for (i in folder_for) {
-		print folder_for[i]
+	print "# packages not required:"
+	for (i in folder_path) {
+		# print ifolder_path[i]
+		printf("# %-25s\n", i)
+	}
+	print "# ====================================================="
+	print "# hence folders to exclude:"
+	for (i in folder_path) {
+		print folder_path[i]
 	}
 	print "# ====================================================="
 }

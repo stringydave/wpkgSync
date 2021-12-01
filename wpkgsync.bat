@@ -5,6 +5,19 @@ rem put public part on server, and private part at %wpkgidfile%
 rem schedule this file to run
 rem file needs to run as Admin equivalent, or wpkguserdetails and rsync logging to logfile won't work
 
+rem 1. make sure this is the only wpkgsync process runs at a time
+rem 2. don't start if wpkg service is running
+rem 3. except that we are launched from end of wpkg service, so that's allowed
+rem 4. if sync was successful, record date, so that another process can alarm if we've failed for a long time.
+
+rem todo alert if we haven't managed to synch in 14 days:
+rem forfiles /P c:\ProgramData\wpkgsync\ /m lastsync.log /D -14
+rem iff errorlevel 1 something...
+
+rem call:
+rem /fast - don't speed limit (default 2,000Kbps)
+rem /setup  just do the minimum - top level
+
 rem returned codes:
 rem   101 missing ini file
 rem   102 could not read from ini file
@@ -13,10 +26,6 @@ rem   104 not running as Admin
 rem   200+rsync get failed
 rem   300+rsync send failed
 rem other setup rsync failed
-
-rem call:
-rem /fast - don't speed limit (default 2,000Kbps)
-rem /setup  just do the minimum - top level
 
 rem changelog
 rem 20/10/16  dce  tidy up
@@ -40,6 +49,8 @@ rem 03/07/20  dce  abort if not running as Admin, tidy up variables
 rem 09/11/20  dce  get systeminfo and serial number
 rem 23/11/20  dce  we'll get wpkg to run "logfile" now, so we just need to deal with the output
 rem 27/12/20  dce  fail statuses for rsync get and rsync send, append wpkgExtras.tmp to log once only
+rem 07/03/21  dce  allow only one instance to run, don't run if WPKG Service is running.
+rem 14/03/21  dce  write last success at end
 
 rem abort if not running as Admin
 net file >nul 2>&1
@@ -48,6 +59,24 @@ if errorlevel 1 (
 	exit /b 104
 )
 
+rem make sure we are OK to run, is wpkgsync_process already running?
+tasklist | find /i "rsync" >nul 2>&1 && goto END
+
+rem if WPKG service is not running, we can begin.
+net start | find /i "wpkg" || goto BEGIN
+rem if WPKG service is running then re-launch ourself as a separate instance
+if not "%running%"=="" goto WAITCHECK
+set running=true
+start "WPKGsync Script" /separate %0
+exit
+
+:WAITCHECK
+rem if WPKG service is not running, then we can begin, wait for 5 seconds
+ping -n 5 localhost > nul
+rem and if it is still running, then quit because we're not alone.
+net start | find /i "wpkg" && exit
+
+:BEGIN
 rem Make environment variable changes local to this batch file
 SETLOCAL
 
@@ -204,3 +233,7 @@ exit /b 103
 
 :END
 if exist "%temp%\%scriptname%.acl.log" del "%temp%\%scriptname%.acl.log"
+rem log the successful sync
+echo %date% %time% %scriptname% sync success > %HOME%\lastsync.log
+
+

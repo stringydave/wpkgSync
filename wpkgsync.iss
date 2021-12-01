@@ -19,17 +19,27 @@
 ; 09/11/20  dce  .16 get systeminfo and serial number
 ; 23/11/20  dce  .20 use "logfile" for systeminfo and serial number
 ; 23/11/20  dce  6.2.0.20 use 64 bit CWrsync 6.2.0
+; 31/12/20  dce  .21 add wpkgcontrol
+; 07/03/21  dce  .22 fold wpkgcontrol into wpkgsync
+; 11/03/21  dce  .22 build version depending on Architecture
+; 01/12/21  dce  remove wpkgcontrol
 
 [Setup]
 ; ============================================================
 ; use cwRsync version for base version number, change it here, uncomment ArchitecturesAllowed for x64
-ArchitecturesAllowed=x64              
-#define MyAppVersion "6.2.0.20"       
-; #define MyAppVersion "5.5.0.20"    
+ArchitecturesAllowed=x64
+#define ScriptVersion "22"
+;#if "x64" == ArchitecturesAllowed 
+	#define RsyncVer "6.2.1"       
+;#else
+;	#define RsyncVer "5.5.0"    
+;#endif
+
 #define MyCompany "company"
 ; ============================================================
-AppVersion={#MyAppVersion}
-OutputBaseFilename=wpkgsync_setup.{#MyAppVersion}.{#MyCompany}
+; #define MyAppVersion {#RsyncVer} + "." + {#ScriptVersion}
+AppVersion={#RsyncVer}.{#ScriptVersion}
+OutputBaseFilename=wpkgsync_setup.{#RsyncVer}.{#ScriptVersion}.{#MyCompany}
 AppName=WpkgSync
 #include AddBackslash(SourcePath) + "config." + AddBackslash(MyCompany) + "include.iss" 
 UninstallDisplayName=WpkgSync
@@ -59,7 +69,7 @@ Source: "C:\progs\wpkgsync\wpkgsync.ico";                             DestDir: "
 Source: "C:\progs\wpkgsync\config.{#MyCompany}\wpkgsync.ini";         DestDir: "{app}";                                                    Flags: ignoreversion
 Source: "C:\progs\wpkgsync\config.{#MyCompany}\.ssh\wpkgsyncuser.id"; DestDir: "{commonappdata}\wpkgsync\.ssh";                            Flags: ignoreversion
 Source: "C:\progs\wpkgsync\config.{#MyCompany}\.ssh\known_hosts";     DestDir: "{commonappdata}\wpkgsync\.ssh"; DestName: "known_hosts";   Flags: ignoreversion
-Source: "C:\progs\wpkgsync\cwRsync\*";                                DestDir: "{app}";                                                    Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\progs\wpkgsync\cwRsync.{#RsyncVer}\bin\*";                DestDir: "{app}";                                                    Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 ; push the wpkg client so we can run the install
