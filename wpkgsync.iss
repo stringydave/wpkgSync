@@ -23,23 +23,19 @@
 ; 07/03/21  dce  .22 fold wpkgcontrol into wpkgsync
 ; 11/03/21  dce  .22 build version depending on Architecture
 ; 01/12/21  dce  remove wpkgcontrol
+; 20/01/22  dce  6.2.4 build one combined version for x64 & x86
 
 [Setup]
 ; ============================================================
-; use cwRsync version for base version number, change it here, uncomment ArchitecturesAllowed for x64
-ArchitecturesAllowed=x64
+; update these variables to match what you're building
+#define RsyncVer_x64 "6.2.4"      
+#define RsyncVer_x86 "5.5.0"    
 #define ScriptVersion "22"
-;#if "x64" == ArchitecturesAllowed 
-	#define RsyncVer "6.2.1"       
-;#else
-;	#define RsyncVer "5.5.0"    
-;#endif
-
 #define MyCompany "company"
 ; ============================================================
 ; #define MyAppVersion {#RsyncVer} + "." + {#ScriptVersion}
-AppVersion={#RsyncVer}.{#ScriptVersion}
-OutputBaseFilename=wpkgsync_setup.{#RsyncVer}.{#ScriptVersion}.{#MyCompany}
+AppVersion={#RsyncVer_x64}.{#ScriptVersion}
+OutputBaseFilename=wpkgsync_setup.{#RsyncVer_x64}.{#ScriptVersion}.{#MyCompany}
 AppName=WpkgSync
 #include AddBackslash(SourcePath) + "config." + AddBackslash(MyCompany) + "include.iss" 
 UninstallDisplayName=WpkgSync
@@ -55,6 +51,11 @@ Compression=lzma
 SolidCompression=yes
 ; ExtraDiskSpaceRequired for the wpkg folder download (bytes) we need about 2 Gb = 2,147,483,648 bytes 
 ExtraDiskSpaceRequired=2147483648
+; "ArchitecturesInstallIn64BitMode=x64" requests that the install be done in "64-bit mode" on x64, meaning it should use the native
+; 64-bit Program Files directory and the 64-bit view of the registry.  On all other architectures it will install in "32-bit mode".
+ArchitecturesInstallIn64BitMode=x64
+; Note: We don't set ProcessorsAllowed because we want this installation to run on all architectures (including Itanium,
+; since it's capable of running 32-bit code too).
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -69,13 +70,14 @@ Source: "C:\progs\wpkgsync\wpkgsync.ico";                             DestDir: "
 Source: "C:\progs\wpkgsync\config.{#MyCompany}\wpkgsync.ini";         DestDir: "{app}";                                                    Flags: ignoreversion
 Source: "C:\progs\wpkgsync\config.{#MyCompany}\.ssh\wpkgsyncuser.id"; DestDir: "{commonappdata}\wpkgsync\.ssh";                            Flags: ignoreversion
 Source: "C:\progs\wpkgsync\config.{#MyCompany}\.ssh\known_hosts";     DestDir: "{commonappdata}\wpkgsync\.ssh"; DestName: "known_hosts";   Flags: ignoreversion
-Source: "C:\progs\wpkgsync\cwRsync.{#RsyncVer}\bin\*";                DestDir: "{app}";                                                    Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\progs\wpkgsync\cwRsync_{#RsyncVer_x64}_x64\bin\*";        DestDir: "{app}";                     Check: not Is64BitInstallMode; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\progs\wpkgsync\cwRsync_{#RsyncVer_x86}_x86\bin\*";        DestDir: "{app}";                     Check: Is64BitInstallMode;     Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 ; push the wpkg client so we can run the install
-Source: "C:\progs\wpkgsync\client\WPKG Client 1.3.14-x32.msi";      DestDir: "{commonappdata}\wpkg\client";   Check: not IsWin64;        Flags: ignoreversion
-Source: "C:\progs\wpkgsync\client\WPKG Client 1.3.14-x64.msi";      DestDir: "{commonappdata}\wpkg\client";   Check: IsWin64;            Flags: ignoreversion
-Source: "C:\progs\wpkgsync\client\wpkg_local_settings.xml";         DestDir: "{commonappdata}\wpkg\client";                              Flags: ignoreversion
+Source: "C:\progs\wpkgsync\client\WPKG Client 1.3.14-x32.msi";      DestDir: "{commonappdata}\wpkg\client"; Check: not Is64BitInstallMode; Flags: ignoreversion
+Source: "C:\progs\wpkgsync\client\WPKG Client 1.3.14-x64.msi";      DestDir: "{commonappdata}\wpkg\client"; Check: Is64BitInstallMode;     Flags: ignoreversion
+Source: "C:\progs\wpkgsync\client\wpkg_local_settings.xml";         DestDir: "{commonappdata}\wpkg\client";                                Flags: ignoreversion
 
 ; to silently install wpkg, you use this
 ; msiexec /qn /i WPKGSetup.msi SETTINGSFILE=f:\wpkg\images\setup\settings.xml
@@ -83,11 +85,11 @@ Source: "C:\progs\wpkgsync\client\wpkg_local_settings.xml";         DestDir: "{c
 ; %PROGRAMFILES%\WPKG\wpkginst.exe --SETTINGSFILE=f:\wpkg\images\setup\settings.xml
 
 [Run]
-Filename: "{commonappdata}\wpkg\client\WPKG Client 1.3.14-x32.msi"; Parameters: "/qn SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Installing the x32 WPKG client..."; Description: "Install the WPKG client (if it's not installed)"; Check: not IsWin64; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
-Filename: "{commonappdata}\wpkg\client\WPKG Client 1.3.14-x64.msi"; Parameters: "/qn SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Installing the x64 WPKG client..."; Description: "Install the WPKG client (if it's not installed)"; Check: IsWin64; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
+Filename: "{commonappdata}\wpkg\client\WPKG Client 1.3.14-x32.msi"; Parameters: "/qn SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Installing the x32 WPKG client..."; Description: "Install the WPKG client (if it's not installed)"; Check: not Is64BitInstallMode; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
+Filename: "{commonappdata}\wpkg\client\WPKG Client 1.3.14-x64.msi"; Parameters: "/qn SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Installing the x64 WPKG client..."; Description: "Install the WPKG client (if it's not installed)"; Check: Is64BitInstallMode; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
 ; to update the settings of an already installed WPKG Client, use:
-Filename: "{commonpf32}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: not IsWin64; Flags: postinstall skipifsilent runascurrentuser waituntilterminated
-Filename: "{commonpf64}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: IsWin64; Flags: postinstall skipifsilent runascurrentuser waituntilterminated
+Filename: "{commonpf32}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: not Is64BitInstallMode; Flags: postinstall skipifsilent runascurrentuser waituntilterminated
+Filename: "{commonpf64}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: Is64BitInstallMode; Flags: postinstall skipifsilent runascurrentuser waituntilterminated
 ; minimal synchronisation
 Filename: "{app}\wpkgsync.bat"; StatusMsg: "Synchronising the data..."; Description: "Run the initial synchronisation"; Parameters: "/setup"; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
 ; and then run the first synchronisation
