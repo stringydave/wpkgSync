@@ -12,7 +12,7 @@ rem 4. if sync was successful, record date, so that another process can alarm if
 
 rem todo alert if we haven't managed to synch in 14 days:
 rem forfiles /P c:\ProgramData\wpkgsync\ /m lastsync.log /D -14
-rem iff errorlevel 1 something...
+rem if errorlevel 1 something...
 
 rem call:
 rem /fast - don't speed limit (default 2,000Kbps)
