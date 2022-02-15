@@ -23,14 +23,16 @@
 ; 07/03/21  dce  .22 fold wpkgcontrol into wpkgsync
 ; 11/03/21  dce  .22 build version depending on Architecture
 ; 01/12/21  dce  remove wpkgcontrol
-; 20/01/22  dce  6.2.4 build one combined version for x64 & x86
+; 20/01/22  dce  6.2.4 build one combined version for x64 & x86, destination files will now always be in %PROGRAMFILES%
+; 11/02/22  dce  add scheduled tasks
+; 15/02/22  dce  and remove them on uninstall, install files are "here"
 
 [Setup]
 ; ============================================================
 ; update these variables to match what you're building
 #define RsyncVer_x64 "6.2.4"      
 #define RsyncVer_x86 "5.5.0"    
-#define ScriptVersion "22"
+#define ScriptVersion "25"
 #define MyCompany "company"
 ; ============================================================
 ; #define MyAppVersion {#RsyncVer} + "." + {#ScriptVersion}
@@ -44,7 +46,7 @@ DisableDirPage=yes
 DefaultGroupName=WpkgSync
 DisableProgramGroupPage=yes 
 OutputDir=C:\progs\wpkgsync
-InfoBeforeFile=C:\progs\wpkgsync\config.{#MyCompany}\readme.txt
+InfoBeforeFile=config.{#MyCompany}\readme.txt
 UninstallDisplayIcon={app}\wpkgsync.ico
 SetupIconFile=wpkgsync.ico
 Compression=lzma
@@ -65,19 +67,21 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Type: files; Name: "{app}\*.dll";
 
 [Files]
-Source: "C:\progs\wpkgsync\wpkgsync.bat";                             DestDir: "{app}";                                                    Flags: ignoreversion
-Source: "C:\progs\wpkgsync\wpkgsync.ico";                             DestDir: "{app}";                                                    Flags: ignoreversion
-Source: "C:\progs\wpkgsync\config.{#MyCompany}\wpkgsync.ini";         DestDir: "{app}";                                                    Flags: ignoreversion
-Source: "C:\progs\wpkgsync\config.{#MyCompany}\.ssh\wpkgsyncuser.id"; DestDir: "{commonappdata}\wpkgsync\.ssh";                            Flags: ignoreversion
-Source: "C:\progs\wpkgsync\config.{#MyCompany}\.ssh\known_hosts";     DestDir: "{commonappdata}\wpkgsync\.ssh"; DestName: "known_hosts";   Flags: ignoreversion
-Source: "C:\progs\wpkgsync\cwRsync_{#RsyncVer_x64}_x64\bin\*";        DestDir: "{app}";                     Check: not Is64BitInstallMode; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\progs\wpkgsync\cwRsync_{#RsyncVer_x86}_x86\bin\*";        DestDir: "{app}";                     Check: Is64BitInstallMode;     Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "wpkgsync.bat";                             DestDir: "{app}";                                                      Flags: ignoreversion
+Source: "wpkgsync.ico";                             DestDir: "{app}";                                                      Flags: ignoreversion
+Source: "config.{#MyCompany}\wpkgsync.ini";         DestDir: "{app}";                                                      Flags: ignoreversion
+Source: "config.{#MyCompany}\.ssh\wpkgsyncuser.id"; DestDir: "{commonappdata}\wpkgsync\.ssh";                              Flags: ignoreversion
+Source: "config.{#MyCompany}\.ssh\known_hosts";     DestDir: "{commonappdata}\wpkgsync\.ssh"; DestName: "known_hosts";     Flags: ignoreversion
+Source: "cwRsync_{#RsyncVer_x64}_x64\bin\*";        DestDir: "{app}";                     Check: not Is64BitInstallMode;   Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "cwRsync_{#RsyncVer_x86}_x86\bin\*";        DestDir: "{app}";                     Check: Is64BitInstallMode;       Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "WPKG-service-schedule.xml";                DestDir: "{app}";                                                      Flags: ignoreversion 
+Source: "WPKG-sync-task.xml";                       DestDir: "{app}";                                                      Flags: ignoreversion 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 ; push the wpkg client so we can run the install
-Source: "C:\progs\wpkgsync\client\WPKG Client 1.3.14-x32.msi";      DestDir: "{commonappdata}\wpkg\client"; Check: not Is64BitInstallMode; Flags: ignoreversion
-Source: "C:\progs\wpkgsync\client\WPKG Client 1.3.14-x64.msi";      DestDir: "{commonappdata}\wpkg\client"; Check: Is64BitInstallMode;     Flags: ignoreversion
-Source: "C:\progs\wpkgsync\client\wpkg_local_settings.xml";         DestDir: "{commonappdata}\wpkg\client";                                Flags: ignoreversion
+Source: "client\WPKG Client 1.3.14-x32.msi";        DestDir: "{commonappdata}\wpkg\client"; Check: not Is64BitInstallMode; Flags: ignoreversion
+Source: "client\WPKG Client 1.3.14-x64.msi";        DestDir: "{commonappdata}\wpkg\client"; Check: Is64BitInstallMode;     Flags: ignoreversion
+Source: "client\wpkg_local_settings.xml";           DestDir: "{commonappdata}\wpkg\client";                                Flags: ignoreversion
 
 ; to silently install wpkg, you use this
 ; msiexec /qn /i WPKGSetup.msi SETTINGSFILE=f:\wpkg\images\setup\settings.xml
@@ -85,19 +89,26 @@ Source: "C:\progs\wpkgsync\client\wpkg_local_settings.xml";         DestDir: "{c
 ; %PROGRAMFILES%\WPKG\wpkginst.exe --SETTINGSFILE=f:\wpkg\images\setup\settings.xml
 
 [Run]
-Filename: "{commonappdata}\wpkg\client\WPKG Client 1.3.14-x32.msi"; Parameters: "/qn SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Installing the x32 WPKG client..."; Description: "Install the WPKG client (if it's not installed)"; Check: not Is64BitInstallMode; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
-Filename: "{commonappdata}\wpkg\client\WPKG Client 1.3.14-x64.msi"; Parameters: "/qn SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Installing the x64 WPKG client..."; Description: "Install the WPKG client (if it's not installed)"; Check: Is64BitInstallMode; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
+Filename: "{commonappdata}\wpkg\client\WPKG Client 1.3.14-x32.msi"; Parameters: "/qn SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Installing the x32 WPKG client..."; Description: "Install the WPKG client (if it's not installed)";    Check: not Is64BitInstallMode; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
+Filename: "{commonappdata}\wpkg\client\WPKG Client 1.3.14-x64.msi"; Parameters: "/qn SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Installing the x64 WPKG client..."; Description: "Install the WPKG client (if it's not installed)";    Check: Is64BitInstallMode;     Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
 ; to update the settings of an already installed WPKG Client, use:
-Filename: "{commonpf32}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: not Is64BitInstallMode; Flags: postinstall skipifsilent runascurrentuser waituntilterminated
-Filename: "{commonpf64}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: Is64BitInstallMode; Flags: postinstall skipifsilent runascurrentuser waituntilterminated
+Filename: "{commonpf32}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: not Is64BitInstallMode; Flags: postinstall runascurrentuser waituntilterminated
+Filename: "{commonpf64}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: Is64BitInstallMode;     Flags: postinstall runascurrentuser waituntilterminated
 ; minimal synchronisation
-Filename: "{app}\wpkgsync.bat"; StatusMsg: "Synchronising the data..."; Description: "Run the initial synchronisation"; Parameters: "/setup"; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
+Filename: "{app}\wpkgsync.bat"; StatusMsg: "Synchronising the data..."; Description: "Run the initial synchronisation"; Parameters: "/setup"; Flags: postinstall shellexec runascurrentuser waituntilterminated
 ; and then run the first synchronisation
 Filename: "{app}\wpkgsync.bat"; StatusMsg: "Synchronising the data..."; Description: "Run the first full synchronisation (should run in the background for about 1 hour)"; Flags: unchecked postinstall skipifsilent shellexec runascurrentuser waituntilterminated runminimized hidewizard
+; set the Service start type (default is Auto which doesn't actually work on Win 10) and schedule the Service and Sync task to run
+Filename: "sc"; Parameters: "config WPKGService start= delayed-auto"; StatusMsg: "Set WPKG Service to Auto Start..."; Description: "Set WPKG Service to Auto Start"; Flags: runascurrentuser waituntilterminated
+Filename: "schtasks"; Parameters: "/Create /F /RU ""SYSTEM"" /TN ""WPKG Service""   /XML ""{app}\WPKG-service-schedule.xml"" "; StatusMsg: "Schedule the WPKG client..."; Description: "Schedule the WPKG client to run every day"; Flags: runascurrentuser waituntilterminated
+Filename: "schtasks"; Parameters: "/Create /F /RU ""SYSTEM"" /TN ""WPKG Sync task"" /XML ""{app}\WPKG-sync-task.xml"" ";        StatusMsg: "Schedule the WPKGsync client..."; Description: "Schedule the WPKGsync client to run every hour"; Flags: runascurrentuser waituntilterminated
 
 [UninstallDelete]
 ; include here actions to run after the uninstaller runs, so we want to remove the \ProgramData\wpkgsync data folder
 Type: filesandordirs; Name: "{commonappdata}\wpkgsync";
 
+[UninstallRun]
+Filename: "schtasks"; Parameters: "/Delete /TN ""WPKG Service""   /F"; Flags: runhidden; RunOnceId: "DelService"
+Filename: "schtasks"; Parameters: "/Delete /TN ""WPKG Sync task"" /F"; Flags: runhidden; RunOnceId: "DelSync"
 
 
