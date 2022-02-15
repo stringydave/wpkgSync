@@ -25,7 +25,8 @@
 ; 01/12/21  dce  remove wpkgcontrol
 ; 20/01/22  dce  6.2.4 build one combined version for x64 & x86, destination files will now always be in %PROGRAMFILES%
 ; 11/02/22  dce  add scheduled tasks
-; 15/02/22  dce  and remove them on uninstall, install files are "here"
+; 15/02/22  dce  remove scheduled tasks on uninstall, install files are "here"
+;                skipifsilent on initial sync as well, we'll run that externally if required, e.g. not on "update"
 
 [Setup]
 ; ============================================================
@@ -95,7 +96,7 @@ Filename: "{commonappdata}\wpkg\client\WPKG Client 1.3.14-x64.msi"; Parameters: 
 Filename: "{commonpf32}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: not Is64BitInstallMode; Flags: postinstall runascurrentuser waituntilterminated
 Filename: "{commonpf64}\WPKG\wpkginst.exe"; Parameters: "--SETTINGSFILE={commonappdata}\wpkg\client\wpkg_local_settings.xml"; StatusMsg: "Updating the settings of the WPKG client..."; Description: "Update the settings of the WPKG client (if it's already installed)"; Check: Is64BitInstallMode;     Flags: postinstall runascurrentuser waituntilterminated
 ; minimal synchronisation
-Filename: "{app}\wpkgsync.bat"; StatusMsg: "Synchronising the data..."; Description: "Run the initial synchronisation"; Parameters: "/setup"; Flags: postinstall shellexec runascurrentuser waituntilterminated
+Filename: "{app}\wpkgsync.bat"; StatusMsg: "Synchronising the data..."; Description: "Run the initial synchronisation"; Parameters: "/setup"; Flags: postinstall skipifsilent shellexec runascurrentuser waituntilterminated
 ; and then run the first synchronisation
 Filename: "{app}\wpkgsync.bat"; StatusMsg: "Synchronising the data..."; Description: "Run the first full synchronisation (should run in the background for about 1 hour)"; Flags: unchecked postinstall skipifsilent shellexec runascurrentuser waituntilterminated runminimized hidewizard
 ; set the Service start type (default is Auto which doesn't actually work on Win 10) and schedule the Service and Sync task to run
