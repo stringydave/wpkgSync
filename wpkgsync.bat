@@ -51,11 +51,12 @@ rem 23/11/20  dce  we'll get wpkg to run "logfile" now, so we just need to deal 
 rem 27/12/20  dce  fail statuses for rsync get and rsync send, append wpkgExtras.tmp to log once only
 rem 07/03/21  dce  allow only one instance to run, don't run if WPKG Service is running.
 rem 14/03/21  dce  write last success at end
+rem 17/03/22  dce  at FIX_ACLS section add DE variants of commands
 
 rem abort if not running as Admin
 net file >nul 2>&1
 if errorlevel 1 (
-	echo this script must run as Admin
+	echo this script must run as Admin / Dieses Skript muss als Administrator ausgeführt werden
 	exit /b 104
 )
 
@@ -72,6 +73,7 @@ exit
 
 :WAITCHECK
 rem if WPKG service is not running, then we can begin, wait for 5 seconds
+echo wait 5 seconds...
 ping -n 5 localhost > nul
 rem and if it is still running, then quit because we're not alone.
 net start | find /i "wpkg" && exit
@@ -210,16 +212,19 @@ rsync -vh  -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --timeout
 if errorlevel 1 set /a sync_send=300+%errorlevel%
 
 :FIX_ACLS
+rem the commands we're using here are language dependant, simplest way to determine the relevant language to use is to use /?
 echo setting file ownership...
 echo setting file ownership... >> "%temp%\%scriptname%_acl.log"
-rem takeown /File to /Administrators group /Recurse /D prompt Y, send error out and cmd out to the log file
-takeown /F %ProgramData%\wpkg /A /R /D Y > "%temp%\%scriptname%_acl.log" 2>&1
+rem takeown to /Administrators group /Recurse /D prompt Y, send error out and cmd out to the log file
+takeown /? | find /i "User" >nul     && takeown /F %ProgramData%\wpkg /A /R /D Y > "%temp%\%scriptname%_acl.log" 2>&1
+takeown /? | find /i "Benutzer" >nul && takeown /F %ProgramData%\wpkg /A /R /D J > "%temp%\%scriptname%_acl.log" 2>&1
 set takeown=%errorlevel%
 
 echo setting file permissions...
 echo setting file permissions... >> "%temp%\%scriptname%_acl.log"
 rem /T change Tree (recurse) /Grant, output to log file, apart from error text to CON which we can't capture
-icacls %ProgramData%\wpkg /T /grant:r "Administrators":F "SYSTEM":F "USERS":RX >> "%temp%\%scriptname%_acl.log" 2>&1
+icacls /? | find /i "User" >nul     && icacls %ProgramData%\wpkg /T /grant:r "Administrators":F  "SYSTEM":F "USERS":RX    >> "%temp%\%scriptname%_acl.log" 2>&1
+icacls /? | find /i "Benutzer" >nul && icacls %ProgramData%\wpkg /T /grant:r "Administratoren":F "SYSTEM":F "Benutzer":RX >> "%temp%\%scriptname%_acl.log" 2>&1
 set icacls=%errorlevel%
 
 rem if there was an error
