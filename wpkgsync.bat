@@ -52,6 +52,7 @@ rem 27/12/20  dce  fail statuses for rsync get and rsync send, append wpkgExtras
 rem 07/03/21  dce  allow only one instance to run, don't run if WPKG Service is running.
 rem 14/03/21  dce  write last success at end
 rem 17/03/22  dce  at FIX_ACLS section add DE variants of commands
+rem 18/03/22  dce  remove extraneous code re acl.log
 
 rem abort if not running as Admin
 net file >nul 2>&1
@@ -231,8 +232,6 @@ rem if there was an error
 if not     '%sync_get%'==''    exit /b %sync_get%
 if not    '%sync_send%'==''    exit /b %sync_send%
 if '%takeown%.%icacls%'=='0.0' goto END
-rem append acl log to the end of the logfile (might not work in setup mode)
-type "%temp%\%scriptname%.acl.log" >> %wpkglogfile%
 rem and quit
 exit /b 103
 

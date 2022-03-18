@@ -27,7 +27,7 @@
 ; 11/02/22  dce  add scheduled tasks
 ; 15/02/22  dce  remove scheduled tasks on uninstall, install files are "here"
 ;                skipifsilent on initial sync as well, we'll run that externally if required, e.g. not on "update"
-; 17/03/22  dce  new version of wpkgsync.bat to cope with DE lanuage
+; 17/03/22  dce  new version of wpkgsync.bat to cope with DE language
 
 
 [Setup]
@@ -35,7 +35,7 @@
 ; update these variables to match what you're building
 #define RsyncVer_x64 "6.2.4"      
 #define RsyncVer_x86 "5.5.0"    
-#define ScriptVersion "27"
+#define ScriptVersion "28"
 #define MyCompany "company"
 ; ============================================================
 ; #define MyAppVersion {#RsyncVer} + "." + {#ScriptVersion}
