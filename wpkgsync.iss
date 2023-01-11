@@ -28,14 +28,15 @@
 ; 15/02/22  dce  remove scheduled tasks on uninstall, install files are "here"
 ;                skipifsilent on initial sync as well, we'll run that externally if required, e.g. not on "update"
 ; 17/03/22  dce  new version of wpkgsync.bat to cope with DE language
+; 11/01/23  dce  6.2.7 and remove wpkg folder on uninstall
 
 
 [Setup]
 ; ============================================================
 ; update these variables to match what you're building
-#define RsyncVer_x64 "6.2.4"      
+#define RsyncVer_x64 "6.2.7"      
 #define RsyncVer_x86 "5.5.0"    
-#define ScriptVersion "28"
+#define ScriptVersion "30"
 #define MyCompany "company"
 ; ============================================================
 ; #define MyAppVersion {#RsyncVer} + "." + {#ScriptVersion}
@@ -107,8 +108,9 @@ Filename: "schtasks"; Parameters: "/Create /F /RU ""SYSTEM"" /TN ""WPKG Service"
 Filename: "schtasks"; Parameters: "/Create /F /RU ""SYSTEM"" /TN ""WPKG Sync task"" /XML ""{app}\WPKG-sync-task.xml"" ";        StatusMsg: "Schedule the WPKGsync client..."; Description: "Schedule the WPKGsync client to run every hour"; Flags: runascurrentuser waituntilterminated
 
 [UninstallDelete]
-; include here actions to run after the uninstaller runs, so we want to remove the \ProgramData\wpkgsync data folder
+; include here actions to run after the uninstaller runs, so we want to remove the \ProgramData\wpkgsync and ..\wpkg folders
 Type: filesandordirs; Name: "{commonappdata}\wpkgsync";
+Type: filesandordirs; Name: "{commonappdata}\wpkg";
 
 [UninstallRun]
 Filename: "schtasks"; Parameters: "/Delete /TN ""WPKG Service""   /F"; Flags: runhidden; RunOnceId: "DelService"
