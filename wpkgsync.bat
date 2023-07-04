@@ -17,6 +17,7 @@ rem if errorlevel 1 something...
 rem call:
 rem /fast - don't speed limit (default 2,000Kbps)
 rem /setup  just do the minimum - top level
+rem /dryrun pretend to do sync
 
 rem returned codes:
 rem   101 missing ini file
@@ -53,6 +54,8 @@ rem 07/03/21  dce  allow only one instance to run, don't run if WPKG Service is 
 rem 14/03/21  dce  write last success at end
 rem 17/03/22  dce  at FIX_ACLS section add DE variants of commands
 rem 18/03/22  dce  remove extraneous code re acl.log
+rem 03/07/23  dce  move .ini file to %programdata%\wpkgsync\ and store more variables there
+rem 04/07/23  dce  add /dryrun
 
 rem abort if not running as Admin
 net file >nul 2>&1
@@ -88,44 +91,47 @@ set CWRSYNCHOME=%~dp0
 set PATH=%CWRSYNCHOME%;%PATH%
 rem save these because %~0 will be destroyed by shift
 set scriptname=%~n0
-set scriptpath=%~dpn0
+set scriptpath=%~dp0
+set inifile=%programdata%\%~n0\%~n0.ini
 
-rem load variables from the .ini file in the same folder as this file, use usebackq otherwise quoted path is interpreted as a string
-if exist "%scriptpath%.ini" (
-    FOR /F "usebackq tokens=1,2 delims==" %%i in ("%scriptpath%.ini") do (
-        if "%%i"=="wpkgremote" set wpkgremote=%%j
+rem load variables from the .ini file, use usebackq otherwise quoted path is interpreted as a string
+if exist "%inifile%" (
+    FOR /F "usebackq tokens=1,2 delims==" %%i in ("%inifile%") do (
+        if "%%i"=="wpkgremote"  set wpkgremote=%%j
+        if "%%i"=="wpkgreports" set wpkgreports=%%j
+        if "%%i"=="wpkgfolder"  set wpkgfolder=%%j
+        if "%%i"=="wpkgidfile"  set wpkgidfile=%%j
+        if "%%i"=="wpkg_hosts"  set wpkg_hosts=%%j
+        if "%%i"=="wpkglocal"   set wpkglocal=%%j
     )
 ) else (
-	echo missing file "%scriptpath%.ini"
+	echo missing file "%inifile%"
 	exit /b 101
 )
 
-rem check we got the value we need
-if "%wpkgremote%"=="" (
-	echo failed to initialise variables from "%scriptpath%.ini"
-	exit /b 102
-)
+rem check we got the values we need
+if  "%wpkgremote%"=="" goto INIERROR 
+if "%wpkgreports%"=="" goto INIERROR 
+if  "%wpkgidfile%"=="" goto INIERROR 
+if  "%wpkg_hosts%"=="" goto INIERROR 
+if  "%wpkgfolder%"=="" goto INIERROR 
+if   "%wpkglocal%"=="" goto INIERROR 
 
 rem we're required to set HOME, but it seems to be ignored
 set HOME=%ProgramData%\wpkgsync
-set wpkgFolder=%ProgramData%\wpkg
 set wpkglogfile=%systemdrive%\wpkg-%computername%.log
 
 rem now parse any parameters
 set bwlimit=--bwlimit=2000
 set setup=
+
 :PARSE
 if /i '%1'=='/fast'   set bwlimit=
 if /i '%1'=='/setup'  set setup=True
+if /i '%1'=='/dryrun' set dryrun=--dry-run
 shift
 rem loop until we've consumed all the parameters passed
 if not '%1'=='' goto PARSE
-
-rem rsync variables in linux format, colon defines a remote host, so:
-rem replace c: with /cygdrive/c and \ with /  Example: C:\WORK\* --> /cygdrive/c/work/*
-set wpkgidfile=/cygdrive/c/ProgramData/wpkgsync/.ssh/wpkgsyncuser.id
-set wpkg_hosts=/cygdrive/c/ProgramData/wpkgsync/.ssh/known_hosts
-set wpkglocal=/cygdrive/c/ProgramData/wpkg
 
 rem rsync/ssh options
 rem  -r                     recurse into folders
@@ -173,10 +179,10 @@ if '%setup%'=='' goto MAKE-EXCLUDE-FILE
 rem just the top level, no packages as yet, no logging, because we'll be running this whilst wpkg is active
 rem if it failed then abort, so that automated install will abort
 set exclude=--exclude='profiles.sites' --exclude='packages/'
-rsync -r -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --partial --times --timeout=120 %bwlimit% %exclude% %wpkgremote%:/opt/updates/ %wpkglocal%/ >nul 2>&1
+rsync %dryrun% -r -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --partial --times --timeout=120 %bwlimit% %exclude% %wpkgremote%/ %wpkglocal%/ >nul 2>&1
 if errorlevel 1 exit /b %errorlevel%
 rem and the package.xml files, so we can process excludes later
-rsync -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --partial --times --timeout=120 %bwlimit% %wpkgremote%:/opt/updates/packages/*.xml %wpkglocal%/packages/ >nul 2>&1
+rsync %dryrun% -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --partial --times --timeout=120 %bwlimit% %wpkgremote%/packages/*.xml %wpkglocal%/packages/ >nul 2>&1
 if errorlevel 1 exit /b %errorlevel%
 rem and skip all the next bits
 goto FIX_ACLS
@@ -185,14 +191,14 @@ goto FIX_ACLS
 if exist "%temp%\%scriptname%.excl.txt" del "%temp%\%scriptname%.excl.txt"
 if not exist %wpkgFolder%\Tools\awk.exe               goto RSYNC-GET
 if not exist %wpkgFolder%\scripts\wpkgsyncexclude.awk goto RSYNC-GET
-%wpkgFolder%\Tools\awk.exe -f %wpkgFolder%\scripts\wpkgsyncexclude.awk %wpkgFolder%\packages\*.xml %wpkglogfile% > "%temp%\%scriptname%.excl.txt"
+"%wpkgFolder%\Tools\awk.exe" -f %wpkgFolder%\scripts\wpkgsyncexclude.awk %wpkgFolder%\packages\*.xml %wpkglogfile% > "%temp%\%scriptname%.excl.txt"
 
 :RSYNC-GET
 rem if previous step has made an exclude file then use it, exclude-from works with DOS syntax too
 set exclude=--exclude='profiles.sites' --exclude='client/'
 if exist "%temp%\%scriptname%.excl.txt"                             set exclude=--exclude-from=%temp%\%scriptname%.excl.txt
 rem sync the remote structure to here, append the log to the wpkg log (wpkg creates a new one each time):
-rsync -rvh -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --progress --delete --delete-excluded --partial --times --timeout=120 %bwlimit% %exclude% --log-file=%wpkglogfile% %wpkgremote%:/opt/updates/ %wpkglocal%/ 2>nul
+rsync %dryrun% -rvh -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --progress --delete --delete-excluded --partial --times --timeout=120 %bwlimit% %exclude% --log-file=%wpkglogfile% %wpkgremote%/ %wpkglocal%/ 2>nul
 if errorlevel 1 set /a sync_get=200+%errorlevel%
 
 :APPEND-LOG
@@ -209,23 +215,26 @@ rem replace \ with /
 set wpkglogfile=%wpkglogfile:\=/%
 rem should end up with e.g. wpkglogfile=/cygdrive/c/wpkg-%computername%.log
 rem and send the wpkglogfile
-rsync -vh  -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --timeout=120 %bwlimit% --log-file=%wpkglogfile% %wpkglogfile% %wpkgremote%:/opt/wpkgreports/ 2>nul
+rsync %dryrun% -vh  -e "ssh -i %wpkgidfile% -o UserKnownHostsFile=%wpkg_hosts%" --timeout=120 %bwlimit% --log-file=%wpkglogfile% %wpkglogfile% %wpkgreports%/ 2>nul
 if errorlevel 1 set /a sync_send=300+%errorlevel%
 
 :FIX_ACLS
+echo ##############################################################
+echo %scriptpath%
+echo ##############################################################
 rem the commands we're using here are language dependant, simplest way to determine the relevant language to use is to use /?
-echo setting file ownership...
-echo setting file ownership... >> "%temp%\%scriptname%_acl.log"
+echo setting file ownership on %wpkgfolder%...
+echo setting file ownership on %wpkgfolder%... > "%temp%\%scriptname%_acl.log"
 rem takeown to /Administrators group /Recurse /D prompt Y, send error out and cmd out to the log file
-takeown /? | find /i "User" >nul     && takeown /F %ProgramData%\wpkg /A /R /D Y > "%temp%\%scriptname%_acl.log" 2>&1
-takeown /? | find /i "Benutzer" >nul && takeown /F %ProgramData%\wpkg /A /R /D J > "%temp%\%scriptname%_acl.log" 2>&1
+takeown /? | find /i "User" >nul     && takeown /F %wpkgfolder%\* /A /R /D Y >> "%temp%\%scriptname%_acl.log" 2>&1
+takeown /? | find /i "Benutzer" >nul && takeown /F %wpkgfolder%\* /A /R /D J >> "%temp%\%scriptname%_acl.log" 2>&1
 set takeown=%errorlevel%
 
-echo setting file permissions...
-echo setting file permissions... >> "%temp%\%scriptname%_acl.log"
+echo setting file permissions on %wpkgfolder%...
+echo setting file permissions on %wpkgfolder%... >> "%temp%\%scriptname%_acl.log"
 rem /T change Tree (recurse) /Grant, output to log file, apart from error text to CON which we can't capture
-icacls /? | find /i "User" >nul     && icacls %ProgramData%\wpkg /T /grant:r "Administrators":F  "SYSTEM":F "USERS":RX    >> "%temp%\%scriptname%_acl.log" 2>&1
-icacls /? | find /i "Benutzer" >nul && icacls %ProgramData%\wpkg /T /grant:r "Administratoren":F "SYSTEM":F "Benutzer":RX >> "%temp%\%scriptname%_acl.log" 2>&1
+icacls /? | find /i "User" >nul     && icacls %wpkgfolder%\* /T /grant:r "Administrators":F  "SYSTEM":F "USERS":RX    >> "%temp%\%scriptname%_acl.log" 2>&1
+icacls /? | find /i "Benutzer" >nul && icacls %wpkgfolder%\* /T /grant:r "Administratoren":F "SYSTEM":F "Benutzer":RX >> "%temp%\%scriptname%_acl.log" 2>&1
 set icacls=%errorlevel%
 
 rem if there was an error
@@ -234,6 +243,11 @@ if not    '%sync_send%'==''    exit /b %sync_send%
 if '%takeown%.%icacls%'=='0.0' goto END
 rem and quit
 exit /b 103
+
+:INIERROR
+echo failed to initialise variables from "%inifile%"
+exit /b 102
+
 
 :END
 if exist "%temp%\%scriptname%.acl.log" del "%temp%\%scriptname%.acl.log"

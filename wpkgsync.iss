@@ -29,14 +29,15 @@
 ;                skipifsilent on initial sync as well, we'll run that externally if required, e.g. not on "update"
 ; 17/03/22  dce  new version of wpkgsync.bat to cope with DE language
 ; 11/01/23  dce  6.2.7 and remove wpkg folder on uninstall
+; 03/07/23  dce  6.2.8 and ini file at %programfiles%\wpkgsync, add /dryrun
 
 
 [Setup]
 ; ============================================================
 ; update these variables to match what you're building
-#define RsyncVer_x64 "6.2.7"      
+#define RsyncVer_x64 "6.2.8"      
 #define RsyncVer_x86 "5.5.0"    
-#define ScriptVersion "30"
+#define ScriptVersion "35"
 #define MyCompany "company"
 ; ============================================================
 ; #define MyAppVersion {#RsyncVer} + "." + {#ScriptVersion}
@@ -73,11 +74,11 @@ Type: files; Name: "{app}\*.dll";
 [Files]
 Source: "wpkgsync.bat";                             DestDir: "{app}";                                                      Flags: ignoreversion
 Source: "wpkgsync.ico";                             DestDir: "{app}";                                                      Flags: ignoreversion
-Source: "config.{#MyCompany}\wpkgsync.ini";         DestDir: "{app}";                                                      Flags: ignoreversion
+Source: "config.{#MyCompany}\wpkgsync.ini";         DestDir: "{commonappdata}\wpkgsync";                                   Flags: ignoreversion
 Source: "config.{#MyCompany}\.ssh\wpkgsyncuser.id"; DestDir: "{commonappdata}\wpkgsync\.ssh";                              Flags: ignoreversion
 Source: "config.{#MyCompany}\.ssh\known_hosts";     DestDir: "{commonappdata}\wpkgsync\.ssh"; DestName: "known_hosts";     Flags: ignoreversion
-Source: "cwRsync_{#RsyncVer_x64}_x64\bin\*";        DestDir: "{app}";                     Check: not Is64BitInstallMode;   Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "cwRsync_{#RsyncVer_x86}_x86\bin\*";        DestDir: "{app}";                     Check: Is64BitInstallMode;       Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "cwRsync_{#RsyncVer_x64}_x64\bin\*";        DestDir: "{app}";                     Check: Is64BitInstallMode;       Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "cwRsync_{#RsyncVer_x86}_x86\bin\*";        DestDir: "{app}";                     Check: not Is64BitInstallMode;   Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "WPKG-service-schedule.xml";                DestDir: "{app}";                                                      Flags: ignoreversion 
 Source: "WPKG-sync-task.xml";                       DestDir: "{app}";                                                      Flags: ignoreversion 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
